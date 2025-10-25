@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { TextBlock as TextBlockType, TextStyle } from '@/types/block';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,26 +13,64 @@ interface TextBlockProps {
 
 export default function TextBlock({ block, onSave }: TextBlockProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [currentStyle, setCurrentStyle] = useState<TextStyle>(block.style);
+  const isUserTyping = useRef(false);
+
+  // Use block.style directly instead of local state
+  // This ensures undo/redo updates the style immediately
 
   useEffect(() => {
-    if (contentRef.current && contentRef.current.textContent !== block.content) {
+    // Only update content if user is not currently typing
+    if (contentRef.current && !isUserTyping.current && contentRef.current.textContent !== block.content) {
+      const selection = window.getSelection();
+      let cursorPosition: number | undefined;
+
+      // Save cursor position if there's an active selection
+      try {
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          cursorPosition = range.startOffset;
+        }
+      } catch {
+        // No valid selection, ignore
+      }
+
       contentRef.current.textContent = block.content;
+
+      // Restore cursor position
+      if (selection && cursorPosition !== undefined) {
+        try {
+          const newRange = document.createRange();
+          const textNode = contentRef.current.firstChild;
+          if (textNode) {
+            const offset = Math.min(cursorPosition, textNode.textContent?.length || 0);
+            newRange.setStart(textNode, offset);
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+          }
+        } catch {
+          // Ignore errors with cursor restoration
+        }
+      }
     }
   }, [block.content]);
 
   const handleContentChange = () => {
     if (contentRef.current) {
       const newContent = contentRef.current.textContent || '';
+      isUserTyping.current = true;
       onSave({
         ...block,
         content: newContent,
       });
+      // Reset typing flag after a short delay
+      setTimeout(() => {
+        isUserTyping.current = false;
+      }, 100);
     }
   };
 
   const handleStyleChange = (newStyle: TextStyle) => {
-    setCurrentStyle(newStyle);
     onSave({
       ...block,
       style: newStyle,
@@ -64,7 +102,7 @@ export default function TextBlock({ block, onSave }: TextBlockProps) {
         {styleButtons.map(({ style, icon: Icon, label }) => (
           <Button
             key={style}
-            variant={currentStyle === style ? 'default' : 'outline'}
+            variant={block.style === style ? 'default' : 'outline'}
             size="sm"
             onClick={() => handleStyleChange(style)}
             className="gap-2"
@@ -82,7 +120,7 @@ export default function TextBlock({ block, onSave }: TextBlockProps) {
         suppressContentEditableWarning
         onBlur={handleContentChange}
         onInput={handleContentChange}
-        className={getStyleClasses(currentStyle)}
+        className={getStyleClasses(block.style)}
         role="textbox"
         aria-label="Text block content"
       />
