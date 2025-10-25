@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/app/lib/db';
-import { Block, TextBlock, ImageBlock } from '@/app/types/block';
+import db from '@/lib/db';
+import { Block, TextBlock, ImageBlock } from '@/types/block';
 import { randomUUID } from 'crypto';
 
 // GET: Return a list of blocks

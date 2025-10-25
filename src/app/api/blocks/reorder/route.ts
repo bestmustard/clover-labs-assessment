@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/app/lib/db';
+import db from '@/lib/db';
 
 // PATCH: Reorder blocks
 export async function PATCH(request: NextRequest) {
