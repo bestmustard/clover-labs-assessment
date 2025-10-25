@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import { ImageBlock as ImageBlockType } from '@/types/block';
 import { Card } from '@/components/ui/card';
@@ -14,12 +13,16 @@ interface ImageBlockProps {
 }
 
 export default function ImageBlock({ block, onSave }: ImageBlockProps) {
-  const [url, setUrl] = useState(block.content);
-  const [width, setWidth] = useState(block.width?.toString() || '');
-  const [height, setHeight] = useState(block.height?.toString() || '');
+  // Use block props directly instead of local state
+  // This ensures undo/redo updates the inputs immediately
+  const url = block.content;
+  const width = block.width?.toString() || '';
+  const height = block.height?.toString() || '';
+
+  // Check if URL is valid (starts with http:// or https://)
+  const isValidUrl = url && (url.startsWith('http://') || url.startsWith('https://'));
 
   const handleUrlChange = (newUrl: string) => {
-    setUrl(newUrl);
     onSave({
       ...block,
       content: newUrl,
@@ -27,7 +30,6 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
   };
 
   const handleWidthChange = (newWidth: string) => {
-    setWidth(newWidth);
     const widthNum = parseInt(newWidth) || undefined;
     onSave({
       ...block,
@@ -36,7 +38,6 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
   };
 
   const handleHeightChange = (newHeight: string) => {
-    setHeight(newHeight);
     const heightNum = parseInt(newHeight) || undefined;
     onSave({
       ...block,
@@ -95,7 +96,7 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
 
       {/* Live Preview */}
       <div className="border border-border rounded-lg p-4 bg-muted/50 min-h-[200px] flex items-center justify-center overflow-hidden">
-        {url ? (
+        {isValidUrl ? (
           <div
             style={{
               width: width ? `${width}px` : '400px',
@@ -118,7 +119,9 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <ImageIcon className="w-12 h-12" />
-            <p className="text-sm">Enter an image URL to see preview</p>
+            <p className="text-sm">
+              {url ? 'Enter a valid URL (must start with http:// or https://)' : 'Enter an image URL to see preview'}
+            </p>
           </div>
         )}
       </div>
