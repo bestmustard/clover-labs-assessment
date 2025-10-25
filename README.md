@@ -24,7 +24,7 @@ A lightweight, Notion-inspired block-based editor built with Next.js, featuring 
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd mini-notion
+cd clover-labs-assessment
 ```
 
 2. Install dependencies:
