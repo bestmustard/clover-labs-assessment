@@ -13,10 +13,33 @@ import {
 import { Plus, FileText, Image as ImageIcon } from 'lucide-react';
 import TextBlock from '@/components/blocks/TextBlock';
 import ImageBlock from '@/components/blocks/ImageBlock';
+import SortableBlock from '@/components/SortableBlock';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 
 export default function Editor() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Fetch blocks on mount
   useEffect(() => {
@@ -85,6 +108,42 @@ export default function Editor() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = blocks.findIndex((block) => block.id === active.id);
+    const newIndex = blocks.findIndex((block) => block.id === over.id);
+
+    const newBlocks = arrayMove(blocks, oldIndex, newIndex);
+
+    // Update local state optimistically
+    setBlocks(newBlocks);
+
+    // Send reorder request to API
+    try {
+      const blockIds = newBlocks.map((block) => block.id);
+      const response = await fetch('/api/blocks/reorder', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ blockIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reorder blocks');
+      }
+    } catch (error) {
+      console.error('Error reordering blocks:', error);
+      // Revert to original order on error
+      await fetchBlocks();
+    }
+  };
+
   const renderBlock = (block: Block) => {
     if (block.type === 'text') {
       return (
@@ -122,36 +181,47 @@ export default function Editor() {
             <DropdownMenuTrigger asChild>
               <Button variant="default" size="sm" className="gap-2">
                 <Plus className="w-4 h-4" />
-                Add Block
+                Block
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => addBlock('text')} className="gap-2 cursor-pointer">
                 <FileText className="w-4 h-4" />
-                Text Block
+                Text
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => addBlock('image')} className="gap-2 cursor-pointer">
                 <ImageIcon className="w-4 h-4" />
-                Image Block
+                Image
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
         {/* Blocks Container */}
-        <div className="space-y-4">
-          {blocks.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground mb-4">No blocks yet. Click the + button to add your first block!</p>
-            </Card>
-          ) : (
-            blocks.map((block) => (
-              <div key={block.id}>
-                {renderBlock(block)}
-              </div>
-            ))
-          )}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={blocks.map((block) => block.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {blocks.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <p className="text-muted-foreground mb-4">No blocks yet. Click the + button to add your first block!</p>
+                </Card>
+              ) : (
+                blocks.map((block) => (
+                  <SortableBlock key={block.id} id={block.id}>
+                    {renderBlock(block)}
+                  </SortableBlock>
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );

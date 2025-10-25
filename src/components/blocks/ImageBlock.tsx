@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ImageBlock as ImageBlockType } from '@/types/block';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -93,28 +94,27 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
       </div>
 
       {/* Live Preview */}
-      <div className="border border-border rounded-lg p-4 bg-muted/50 min-h-[200px] flex items-center justify-center">
+      <div className="border border-border rounded-lg p-4 bg-muted/50 min-h-[200px] flex items-center justify-center overflow-hidden">
         {url ? (
-          <img
-            src={url}
-            alt="Block preview"
-            width={width ? parseInt(width) : undefined}
-            height={height ? parseInt(height) : undefined}
-            className="rounded-lg object-contain max-w-full"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = `
-                <div class="flex flex-col items-center gap-2 text-muted-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                    <circle cx="9" cy="9" r="2"/>
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                  </svg>
-                  <p class="text-sm">Failed to load image</p>
-                </div>
-              `;
+          <div
+            style={{
+              width: width ? `${width}px` : '400px',
+              height: height ? `${height}px` : '300px',
+              maxWidth: '100%',
+              position: 'relative',
             }}
-          />
+          >
+            <Image
+              src={url}
+              alt="Block preview"
+              fill
+              style={{
+                objectFit: 'fill',
+              }}
+              className="rounded-lg"
+              unoptimized
+            />
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <ImageIcon className="w-12 h-12" />
