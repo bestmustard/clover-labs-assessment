@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { ImageBlock as ImageBlockType } from '@/types/block';
 import { Card } from '@/components/ui/card';
@@ -19,6 +20,10 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
   const width = block.width?.toString() || '';
   const height = block.height?.toString() || '';
 
+  // Error states for validation
+  const [widthError, setWidthError] = useState<string | null>(null);
+  const [heightError, setHeightError] = useState<string | null>(null);
+
   // Check if URL is valid (starts with http:// or https://)
   const isValidUrl = url && (url.startsWith('http://') || url.startsWith('https://'));
 
@@ -30,7 +35,38 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
   };
 
   const handleWidthChange = (newWidth: string) => {
-    const widthNum = parseInt(newWidth) || undefined;
+    // Clear error when typing
+    setWidthError(null);
+
+    // Allow empty input
+    if (newWidth === '') {
+      onSave({
+        ...block,
+        width: undefined,
+      });
+      return;
+    }
+
+    // Only allow digits - reject any non-numeric characters
+    if (!/^\d+$/.test(newWidth)) {
+      setWidthError('Please enter a valid integer (digits only)');
+      return;
+    }
+
+    const widthNum = parseInt(newWidth, 10);
+
+    // Enforce upper bound of 1000px
+    if (widthNum > 1000) {
+      setWidthError('Maximum width is 1000px');
+      return;
+    }
+
+    // Enforce minimum of 1px
+    if (widthNum < 1) {
+      setWidthError('Width must be at least 1px');
+      return;
+    }
+
     onSave({
       ...block,
       width: widthNum,
@@ -38,7 +74,38 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
   };
 
   const handleHeightChange = (newHeight: string) => {
-    const heightNum = parseInt(newHeight) || undefined;
+    // Clear error when typing
+    setHeightError(null);
+
+    // Allow empty input
+    if (newHeight === '') {
+      onSave({
+        ...block,
+        height: undefined,
+      });
+      return;
+    }
+
+    // Only allow digits - reject any non-numeric characters
+    if (!/^\d+$/.test(newHeight)) {
+      setHeightError('Please enter a valid integer (digits only)');
+      return;
+    }
+
+    const heightNum = parseInt(newHeight, 10);
+
+    // Enforce upper bound of 1000px
+    if (heightNum > 1000) {
+      setHeightError('Maximum height is 1000px');
+      return;
+    }
+
+    // Enforce minimum of 1px
+    if (heightNum < 1) {
+      setHeightError('Height must be at least 1px');
+      return;
+    }
+
     onSave({
       ...block,
       height: heightNum,
@@ -70,12 +137,17 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
             </Label>
             <Input
               id={`width-${block.id}`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="400"
               value={width}
               onChange={(e) => handleWidthChange(e.target.value)}
-              min="0"
+              className={widthError ? 'border-destructive' : ''}
             />
+            {widthError && (
+              <p className="text-sm text-destructive">{widthError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -84,12 +156,17 @@ export default function ImageBlock({ block, onSave }: ImageBlockProps) {
             </Label>
             <Input
               id={`height-${block.id}`}
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="300"
               value={height}
               onChange={(e) => handleHeightChange(e.target.value)}
-              min="0"
+              className={heightError ? 'border-destructive' : ''}
             />
+            {heightError && (
+              <p className="text-sm text-destructive">{heightError}</p>
+            )}
           </div>
         </div>
       </div>
