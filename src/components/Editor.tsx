@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Block, TextBlock, ImageBlock } from '@/types/block';
+import { Block, TextBlock as TextBlockType, ImageBlock as ImageBlockType } from '@/types/block';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, FileText, Image as ImageIcon } from 'lucide-react';
+import TextBlock from '@/components/blocks/TextBlock';
+import ImageBlock from '@/components/blocks/ImageBlock';
 
 export default function Editor() {
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -39,7 +41,7 @@ export default function Editor() {
     try {
       const newBlock = {
         type,
-        content: type === 'text' ? 'New text block' : 'https://via.placeholder.com/400',
+        content: type === 'text' ? 'New text block' : 'https://picsum.photos/400/300',
         ...(type === 'text' ? { style: 'paragraph' as const } : { width: 400, height: 300 }),
       };
 
@@ -60,30 +62,42 @@ export default function Editor() {
     }
   };
 
+  const handleSaveBlock = async (updatedBlock: Block) => {
+    try {
+      const response = await fetch('/api/blocks', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedBlock),
+      });
+
+      if (!response.ok) throw new Error('Failed to update block');
+
+      // Update local state
+      setBlocks((prevBlocks) =>
+        prevBlocks.map((block) =>
+          block.id === updatedBlock.id ? updatedBlock : block
+        )
+      );
+    } catch (error) {
+      console.error('Error saving block:', error);
+    }
+  };
+
   const renderBlock = (block: Block) => {
     if (block.type === 'text') {
-      const textBlock = block as TextBlock;
-      const styles = {
-        h1: 'text-4xl font-bold',
-        h2: 'text-3xl font-semibold',
-        h3: 'text-2xl font-semibold',
-        paragraph: 'text-base',
-      };
-
       return (
-        <div className={`${styles[textBlock.style]} text-foreground`}>
-          {textBlock.content}
-        </div>
+        <TextBlock
+          block={block as TextBlockType}
+          onSave={handleSaveBlock}
+        />
       );
     } else {
-      const imageBlock = block as ImageBlock;
       return (
-        <img
-          src={imageBlock.content}
-          alt="Block image"
-          width={imageBlock.width}
-          height={imageBlock.height}
-          className="rounded-lg object-cover"
+        <ImageBlock
+          block={block as ImageBlockType}
+          onSave={handleSaveBlock}
         />
       );
     }
@@ -132,9 +146,9 @@ export default function Editor() {
             </Card>
           ) : (
             blocks.map((block) => (
-              <Card key={block.id} className="p-6 hover:shadow-lg transition-shadow">
+              <div key={block.id}>
                 {renderBlock(block)}
-              </Card>
+              </div>
             ))
           )}
         </div>

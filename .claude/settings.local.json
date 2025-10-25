@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(xcopy:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
